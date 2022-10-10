@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-
-use App\Models\Product;
-
-
+use Illuminate\Support\Facades\Storage;
 
 class ProductsController extends Controller
 {
@@ -41,39 +40,70 @@ class ProductsController extends Controller
     public function store(Request $request)
     {
 
-        // $request->validate([
-        //     'title'=>'required',
-        //     'description'=>'required',
-        //     'price'=>'required',
-        //     'namefile_img'=>'required|image'
-        // ]);
+        $request->validate([
+            'title'=>'required',
+            'description'=>'required',
+            'price'=>'required',
+            'file'=>'required|image'
+        ]);
 
-        // try{
-        //     $imageName = Str::random().'.'.$request->image->getClientOriginalExtension();
-        //     Storage::disk('public')->putFileAs('product/image', $request->image,$imageName);
-        //     Product::create($request->post()+['image'=>$imageName]);
+        $file = $request->file;
 
-        //     return response()->json([
-        //         'message'=>'Product Created Successfully!!'
-        //     ]);
-        // }catch(\Exception $e){
-        //     \Log::error($e->getMessage());
-        //     return response()->json([
-        //         'message'=>'Something goes wrong while creating a product!!'
-        //     ],500);
-        // }
-        $product = Product::create($request->all());
- 
-        return response()->json($product, 201);
+        $file_dir = "public/storage/img"; // <=> http://localhost:7000/storage/img
+        $file_name = uniqid() . "_" . $file->getClientOriginalName();
+
+        try {
+            $file->move(base_path($file_dir), $file_name);
+        }
+        catch(Exception $e){
+            // TODO: nothing
+        }
+
+        $product = Product::create($request->post() + ['namefile_img' => $file_name]);
+        $product = json_decode("$product");
+
+        $result = [
+            "product" => $product,
+            "message" => "Product created",
+        ];
+
+        return response()->json($result, 201);
     }
  
     public function update(Request $request, Product $product)
     {
 
-        
-        $product->update($request->all());
- 
-        return response()->json($product, 200);
+        $request->validate([
+            'title'=>'required',
+            'description'=>'required',
+            'price'=>'required',
+        ]);
+
+        $file = $request->file;
+        $file_data = [];
+
+        if(is_object($file)){
+            $file_dir = "public/storage/img"; // <=> http://localhost:7000/storage/img
+            $file_name = uniqid() . "_" . $file->getClientOriginalName();
+            $file_data = ['namefile_img' => $file_name];
+
+            try {
+                $file->move(base_path($file_dir), $file_name);
+            }
+            catch(Exception $e){
+                // TODO: nothing
+            }
+        }
+
+        $product = $product->update($request->post() + $file_data);
+        $product = json_decode("$product");
+
+        $result = [
+            "product" => $product,
+            "message" => "Product created",
+        ];
+
+        return response()->json($result, 200);
     }
  
     public function delete(Product $product)
