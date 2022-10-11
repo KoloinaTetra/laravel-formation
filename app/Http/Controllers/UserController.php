@@ -24,7 +24,8 @@ class UserController extends Controller
         $user = User::where('email', $req->email)->first();
        if(!$user || !Hash::check($req->password, $user->password))
        {
-            return ["error"=>"Email or Password is not matched"];
+            $result = ["message"=>"Email or Password is not matched"];
+            return response()->json($result, 401);
        }
         return response()->json($user, 201);
     }
